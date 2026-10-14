@@ -1,0 +1,366 @@
+{
+  "features": [
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age",
+    "Pregnancies"
+  ],
+  "coef": [
+    4.4376778940065496,
+    -0.022118304529140057,
+    0.5944875717851662,
+    -0.36968871568083045,
+    2.7140574385501504,
+    1.6802312330830587,
+    1.001314763636208,
+    0.09276222142341489
+  ],
+  "intercept": -4.708266261429649,
+  "scaled": [
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age"
+  ],
+  "data_min": {
+    "Glucose": 44.0,
+    "BloodPressure": 24.0,
+    "SkinThickness": 7.0,
+    "Insulin": 14.0,
+    "BMI": 18.2,
+    "DiabetesPedigreeFunction": 0.078,
+    "Age": 21.0
+  },
+  "data_max": {
+    "Glucose": 199.0,
+    "BloodPressure": 122.0,
+    "SkinThickness": 99.0,
+    "Insulin": 846.0,
+    "BMI": 67.1,
+    "DiabetesPedigreeFunction": 2.42,
+    "Age": 81.0
+  },
+  "medians": {
+    "Glucose": 117.0,
+    "BloodPressure": 72.0,
+    "SkinThickness": 23.0,
+    "Insulin": 30.5,
+    "BMI": 32.0
+  },
+  "feature_mean_scaled": {
+    "Glucose": 0.501008064516129,
+    "BloodPressure": 0.4937420280612244,
+    "SkinThickness": 0.2210286458333333,
+    "Insulin": 0.09693791316105771,
+    "BMI": 0.2914296821745059,
+    "DiabetesPedigreeFunction": 0.16817946288784513,
+    "Age": 0.20401475694444446,
+    "Pregnancies": 3.8450520833333335
+  },
+  "pregnancies_range": [
+    0,
+    17
+  ],
+  "metrics": {
+    "accuracy": 0.7532467532467533,
+    "precision": 0.65,
+    "recall": 0.52,
+    "f1": 0.5777777777777777,
+    "auc": 0.8348076923076923,
+    "train_accuracy": 0.7768729641693811,
+    "confusion": {
+      "tn": 90,
+      "fp": 14,
+      "fn": 24,
+      "tp": 26
+    },
+    "n_train": 614,
+    "n_test": 154
+  },
+  "roc": {
+    "fpr": [
+      0.0,
+      0.0096,
+      0.0096,
+      0.0192,
+      0.0192,
+      0.0288,
+      0.0288,
+      0.0385,
+      0.0385,
+      0.0481,
+      0.0481,
+      0.0673,
+      0.0673,
+      0.0865,
+      0.0865,
+      0.1058,
+      0.1058,
+      0.1154,
+      0.1154,
+      0.125,
+      0.125,
+      0.1346,
+      0.1346,
+      0.1442,
+      0.1442,
+      0.2019,
+      0.2019,
+      0.2212,
+      0.2212,
+      0.2308,
+      0.2308,
+      0.2404,
+      0.2404,
+      0.2692,
+      0.2692,
+      0.3077,
+      0.3077,
+      0.3173,
+      0.3173,
+      0.3269,
+      0.3269,
+      0.4519,
+      0.4519,
+      0.4712,
+      0.4712,
+      0.5865,
+      0.5865,
+      0.7308,
+      0.7308,
+      1.0
+    ],
+    "tpr": [
+      0.0,
+      0.0,
+      0.06,
+      0.06,
+      0.08,
+      0.08,
+      0.18,
+      0.18,
+      0.22,
+      0.22,
+      0.4,
+      0.4,
+      0.42,
+      0.42,
+      0.46,
+      0.46,
+      0.48,
+      0.48,
+      0.5,
+      0.5,
+      0.52,
+      0.52,
+      0.58,
+      0.58,
+      0.62,
+      0.62,
+      0.68,
+      0.68,
+      0.7,
+      0.7,
+      0.74,
+      0.74,
+      0.78,
+      0.78,
+      0.82,
+      0.82,
+      0.86,
+      0.86,
+      0.88,
+      0.88,
+      0.9,
+      0.9,
+      0.92,
+      0.92,
+      0.96,
+      0.96,
+      0.98,
+      0.98,
+      1.0,
+      1.0
+    ]
+  },
+  "dataset": {
+    "rows": 768,
+    "positive": 268,
+    "negative": 500,
+    "zero_counts": {
+      "Glucose": 5,
+      "BloodPressure": 35,
+      "SkinThickness": 227,
+      "Insulin": 374,
+      "BMI": 11
+    }
+  },
+  "glucose_hist": {
+    "bins": [
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100,
+      110,
+      120,
+      130,
+      140,
+      150,
+      160,
+      170,
+      180,
+      190,
+      200
+    ],
+    "counts": {
+      "0": [
+        1,
+        3,
+        7,
+        24,
+        59,
+        84,
+        89,
+        71,
+        66,
+        34,
+        25,
+        19,
+        7,
+        4,
+        3,
+        4
+      ],
+      "1": [
+        0,
+        0,
+        0,
+        1,
+        4,
+        9,
+        28,
+        28,
+        36,
+        27,
+        29,
+        22,
+        24,
+        21,
+        25,
+        14
+      ]
+    }
+  },
+  "age_rates": [
+    {
+      "label": "21\u201329",
+      "rate": 0.21212121212121213,
+      "n": 396
+    },
+    {
+      "label": "30\u201339",
+      "rate": 0.46060606060606063,
+      "n": 165
+    },
+    {
+      "label": "40\u201349",
+      "rate": 0.5508474576271186,
+      "n": 118
+    },
+    {
+      "label": "50\u201359",
+      "rate": 0.5964912280701754,
+      "n": 57
+    },
+    {
+      "label": "60+",
+      "rate": 0.28125,
+      "n": 32
+    }
+  ],
+  "bmi_rates": [
+    {
+      "label": "<25",
+      "rate": 0.0660377358490566,
+      "n": 106
+    },
+    {
+      "label": "25\u201329.9",
+      "rate": 0.22346368715083798,
+      "n": 179
+    },
+    {
+      "label": "30\u201334.9",
+      "rate": 0.43829787234042555,
+      "n": 235
+    },
+    {
+      "label": "35\u201339.9",
+      "rate": 0.42,
+      "n": 150
+    },
+    {
+      "label": "40+",
+      "rate": 0.5612244897959183,
+      "n": 98
+    }
+  ],
+  "examples": {
+    "low": {
+      "Pregnancies": 1.0,
+      "Glucose": 73.0,
+      "BloodPressure": 50.0,
+      "SkinThickness": 10.0,
+      "Insulin": 0.0,
+      "BMI": 23.0,
+      "DiabetesPedigreeFunction": 0.248,
+      "Age": 21.0,
+      "outcome": 0,
+      "model_prob": 0.032588368266397195
+    },
+    "mid": {
+      "Pregnancies": 8.0,
+      "Glucose": 125.0,
+      "BloodPressure": 96.0,
+      "SkinThickness": 0.0,
+      "Insulin": 0.0,
+      "BMI": 0.0,
+      "DiabetesPedigreeFunction": 0.232,
+      "Age": 54.0,
+      "outcome": 1,
+      "model_prob": 0.4650127248830965
+    },
+    "high": {
+      "Pregnancies": 11.0,
+      "Glucose": 155.0,
+      "BloodPressure": 76.0,
+      "SkinThickness": 28.0,
+      "Insulin": 150.0,
+      "BMI": 33.3,
+      "DiabetesPedigreeFunction": 1.353,
+      "Age": 51.0,
+      "outcome": 1,
+      "model_prob": 0.8590073378842228
+    }
+  },
+  "defaults": {
+    "Pregnancies": 3.0,
+    "Glucose": 117.0,
+    "BloodPressure": 72.0,
+    "SkinThickness": 23.0,
+    "Insulin": 31.25,
+    "BMI": 32.0,
+    "DiabetesPedigreeFunction": 0.3725,
+    "Age": 29.0
+  }
+}

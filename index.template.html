@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diabetes Risk Estimator</title>
+<meta name="description" content="Logistic regression model trained on the Pima Indians Diabetes dataset. Enter measurements to see an estimated probability.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #eef3f5;
+  --surface: #ffffff;
+  --surface-2: #f5f8fa;
+  --ink: #12263a;
+  --muted: #566879;
+  --line: #d3dde4;
+  --low: #0b8f8a;
+  --high: #c2255c;
+  --warn: #9a5b00;
+  --focus: #1c6dd0;
+  --shadow: 0 1px 0 rgba(18,38,58,.04), 0 8px 24px -12px rgba(18,38,58,.18);
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b151c; --surface: #12212b; --surface-2: #0f1c25; --ink: #e5edf2; --muted: #95a8b6;
+    --line: #26394a; --low: #3ccac2; --high: #ff6d9c; --warn: #f0b45a; --focus: #6fb0ff;
+    --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b151c; --surface: #12212b; --surface-2: #0f1c25; --ink: #e5edf2; --muted: #95a8b6;
+  --line: #26394a; --low: #3ccac2; --high: #ff6d9c; --warn: #f0b45a; --focus: #6fb0ff;
+  --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+  color-scheme: dark;
+}
+html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100%; background: var(--bg); color: var(--ink);
+  font-family: var(--body); font-size: 16px; line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+h1, h2, h3 { font-family: var(--display); line-height: 1.1; margin: 0; letter-spacing: -0.015em; }
+p { margin: 0; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+
+/* header */
+.top { display: flex; gap: 24px; align-items: flex-start; justify-content: space-between; padding: 36px 0 28px; }
+.top h1 { font-size: clamp(2.1rem, 5.4vw, 3.6rem); font-weight: 800; max-width: 14ch; }
+.top p { color: var(--muted); max-width: 58ch; margin-top: 14px; font-size: 1.05rem; }
+.theme { flex: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px;
+  height: 40px; padding: 0 14px; font: 500 .9rem var(--body); cursor: pointer; }
+.theme:hover { border-color: var(--muted); }
+
+/* predictor */
+.predict { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 22px; }
+.card h2 { font-size: 1.35rem; font-weight: 700; }
+.card .sub { color: var(--muted); font-size: .94rem; margin-top: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 6px; }
+.chip { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 7px 13px;
+  font: 500 .88rem var(--body); cursor: pointer; }
+.chip:hover { border-color: var(--muted); }
+.chip[data-ex="low"] { border-color: color-mix(in srgb, var(--low) 55%, var(--line)); }
+.chip[data-ex="high"] { border-color: color-mix(in srgb, var(--high) 55%, var(--line)); }
+
+.field { padding: 14px 0; border-top: 1px solid var(--line); }
+.field:first-of-type { border-top: 0; }
+.field-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.field-head > label { font-weight: 600; flex: 1 1 200px; min-width: 0; }
+.field label.miss { font-weight: 400; }
+.field .hint { color: var(--muted); font-size: .85rem; display: block; font-weight: 400; }
+.field .readout { display: flex; align-items: center; gap: 8px; flex: none; }
+.num { width: 92px; text-align: right; background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px;
+  padding: 7px 10px; font: 600 1rem var(--body); font-variant-numeric: tabular-nums; }
+.num:disabled { opacity: .5; }
+.unit { color: var(--muted); font-size: .85rem; min-width: 3.4em; }
+.slider-row { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+input[type=range] { flex: 1; accent-color: var(--ink); height: 28px; min-width: 0; }
+input[type=range]:disabled { opacity: .35; }
+.miss { display: inline-flex; align-items: center; gap: 6px; font-size: .84rem; color: var(--muted); white-space: nowrap; cursor: pointer; }
+.miss input { width: 17px; height: 17px; accent-color: var(--ink); }
+.note { font-size: .82rem; color: var(--warn); margin-top: 6px; min-height: 0; }
+.note:empty { display: none; }
+
+/* result */
+.result { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); }
+.gauge { display: block; width: 100%; max-width: 380px; margin: 6px auto 0; overflow: visible; }
+.g-track { stroke: var(--line); }
+.g-fill { transition: stroke-dashoffset .5s cubic-bezier(.2,.7,.2,1), stroke .3s; }
+.g-dot { transition: transform .5s cubic-bezier(.2,.7,.2,1); transform-origin: 120px 120px; }
+.g-pct { font: 800 44px var(--display); fill: var(--ink); text-anchor: middle; letter-spacing: -0.03em; }
+.g-cap { font: 500 11px var(--body); fill: var(--muted); text-anchor: middle; }
+.verdict { text-align: center; margin-top: 2px; }
+.verdict strong { font: 700 1.3rem var(--display); display: block; }
+.verdict span { color: var(--muted); font-size: .92rem; }
+.verdict.hi strong { color: var(--high); } .verdict.lo strong { color: var(--low); }
+.drivers { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.drivers h3 { font-size: 1.02rem; font-weight: 700; }
+.drivers .sub { margin-bottom: 10px; }
+.drow { display: grid; grid-template-columns: 112px 1fr 48px; align-items: center; gap: 10px; padding: 4px 0; font-size: .9rem; }
+.drow .lab { color: var(--ink); }
+.dtrack { position: relative; height: 12px; background: var(--surface-2); border-radius: 3px; }
+.dtrack::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--muted); opacity: .6; }
+.dbar { position: absolute; top: 0; bottom: 0; border-radius: 3px; transition: width .4s, left .4s; }
+.dval { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: .85rem; }
+
+/* sections */
+section.block { margin-top: 56px; }
+section.block > h2 { font-size: clamp(1.6rem, 3.4vw, 2.2rem); font-weight: 800; }
+section.block > .lede { color: var(--muted); margin-top: 10px; max-width: 64ch; }
+.grid { display: grid; gap: 20px; margin-top: 24px; }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
+.metric { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.metric b { display: block; font: 800 1.9rem var(--display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.metric span { color: var(--muted); font-size: .88rem; }
+.metric small { display: block; color: var(--muted); font-size: .78rem; margin-top: 4px; line-height: 1.35; }
+.callout { margin-top: 18px; padding: 14px 16px; border-left: 4px solid var(--warn); background: var(--surface); border-radius: 0 10px 10px 0; max-width: 72ch; }
+.cm { display: grid; grid-template-columns: auto 1fr 1fr; grid-template-rows: auto 1fr 1fr; gap: 6px; margin-top: 14px; font-size: .9rem; }
+.cm .h { color: var(--muted); font-size: .8rem; align-self: end; text-align: center; padding: 0 4px 2px; }
+.cm .rl { color: var(--muted); font-size: .8rem; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; align-self: center; }
+.cell { border-radius: 10px; padding: 14px 10px; text-align: center; min-height: 92px; display: flex; flex-direction: column; justify-content: center; }
+.cell b { font: 800 1.9rem var(--display); font-variant-numeric: tabular-nums; }
+.cell span { font-size: .8rem; opacity: .9; }
+.cell.ok { background: color-mix(in srgb, var(--low) 20%, var(--surface)); border: 1px solid color-mix(in srgb, var(--low) 45%, var(--line)); }
+.cell.bad { background: color-mix(in srgb, var(--high) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--high) 40%, var(--line)); }
+svg.chart { width: 100%; height: auto; display: block; }
+.axis { stroke: var(--line); } .tick { fill: var(--muted); font: 500 11px var(--body); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .86rem; color: var(--muted); margin-top: 10px; }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.hrow { display: grid; grid-template-columns: 78px 1fr 92px; gap: 10px; align-items: center; padding: 5px 0; font-size: .9rem; }
+.htrack { height: 14px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.hbar { height: 100%; background: var(--high); border-radius: 3px; }
+.hval { color: var(--muted); font-size: .84rem; text-align: right; font-variant-numeric: tabular-nums; }
+.steps { list-style: none; counter-reset: s; padding: 0; margin: 24px 0 0; display: grid; gap: 0; max-width: 760px; }
+.steps li { counter-increment: s; position: relative; padding: 4px 0 22px 52px; border-left: 0; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--ink); color: var(--bg); display: grid; place-items: center; font: 700 .95rem var(--display); }
+.steps li::after { content: ""; position: absolute; left: 16px; top: 38px; bottom: 4px; width: 2px; background: var(--line); }
+.steps li:last-child::after { display: none; }
+.steps b { display: block; font: 700 1.05rem var(--display); }
+.steps span { color: var(--muted); }
+code { font: 500 .88em ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface-2); padding: 1px 6px; border-radius: 5px; }
+footer { margin: 64px 0 40px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; max-width: 80ch; }
+
+@media (max-width: 900px) {
+  .predict { grid-template-columns: 1fr; }
+  .result { position: static; order: -1; }
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .wrap { padding: 0 14px; } .card { padding: 16px; }
+  .drow { grid-template-columns: 92px 1fr 44px; }
+  .top { padding-top: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Diabetes risk estimator</h1>
+      <p>A logistic regression model trained on 768 patient records from the Pima Indians Diabetes dataset. Enter a patient's measurements and see the estimated probability of diabetes, and which measurements push it up or down.</p>
+    </div>
+    <button class="theme" id="themeBtn" type="button" aria-label="Switch between light and dark theme">Theme</button>
+  </header>
+
+  <main>
+    <section class="predict" aria-label="Predictor">
+      <div class="card" id="formCard">
+        <h2>Patient measurements</h2>
+        <p class="sub">Drag a slider or type a value. Tick “Not measured” if a value is unknown; the model then uses the dataset median, the same way it handled missing values in training.</p>
+        <div class="chips" role="group" aria-label="Example patients">
+          <button class="chip" type="button" data-ex="low">Lower-risk example</button>
+          <button class="chip" type="button" data-ex="mid">Borderline example</button>
+          <button class="chip" type="button" data-ex="high">Higher-risk example</button>
+          <button class="chip" type="button" data-ex="reset">Reset to typical patient</button>
+        </div>
+        <div id="fields"></div>
+      </div>
+
+      <aside class="card result" aria-live="polite" aria-label="Estimated risk">
+        <h2>Estimated risk</h2>
+        <svg class="gauge" viewBox="0 -10 240 160" role="img" id="gaugeSvg" aria-label="Risk gauge">
+          <path class="g-track" d="M20 120 A100 100 0 0 1 220 120" fill="none" stroke-width="16" stroke-linecap="round"/>
+          <path id="gFill" class="g-fill" d="M20 120 A100 100 0 0 1 220 120" fill="none" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+          <line x1="120" y1="9" x2="120" y2="31" stroke="var(--muted)" stroke-width="1.5" opacity=".7"/>
+          <text class="g-cap" x="120" y="4">50% line</text>
+          <g id="gDot" class="g-dot"><circle cx="20" cy="120" r="11" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/></g>
+          <text id="gPct" class="g-pct" x="120" y="112">–</text>
+          <text class="g-cap" x="120" y="134">chance of diabetes</text>
+        </svg>
+        <div class="verdict" id="verdict"></div>
+        <div class="drivers">
+          <h3>What moves this estimate</h3>
+          <p class="sub" id="driverSub"></p>
+          <div id="drivers"></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="block" id="performance">
+      <h2>How well does it work?</h2>
+      <p class="lede">The model was scored on 154 patients it never saw during training (20% of the data, same random split as the notebook).</p>
+      <div class="metrics" id="metrics"></div>
+      <div class="callout" id="recallNote"></div>
+      <div class="grid g2">
+        <div class="card">
+          <h3>Confusion matrix</h3>
+          <p class="sub">Each test patient lands in one of four boxes.</p>
+          <div class="cm" id="cm"></div>
+        </div>
+        <div class="card">
+          <h3>ROC curve</h3>
+          <p class="sub">How well the model ranks diabetic patients above non-diabetic ones. The dashed line is a coin flip.</p>
+          <div id="roc"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="drivers-global">
+      <h2>What the model pays attention to</h2>
+      <p class="lede">Bars show how far the log-odds of diabetes move when a measurement goes from the lowest to the highest value in the dataset, with everything else held constant. Glucose and BMI matter most.</p>
+      <div class="card" style="margin-top:24px"><div id="coefChart"></div></div>
+    </section>
+
+    <section class="block" id="data">
+      <h2>The data behind it</h2>
+      <p class="lede" id="dataLede"></p>
+      <div class="grid g2">
+        <div class="card">
+          <h3>Glucose by outcome</h3>
+          <p class="sub">Patients with diabetes cluster at higher glucose readings.</p>
+          <div id="gluc"></div>
+          <div class="legend"><span><i style="background:var(--low)"></i>No diabetes</span><span><i style="background:var(--high)"></i>Diabetes</span></div>
+        </div>
+        <div class="card">
+          <h3>Share with diabetes, by group</h3>
+          <p class="sub">Share of patients in each group whose outcome was diabetes.</p>
+          <div id="rates"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="how">
+      <h2>How it was built</h2>
+      <ol class="steps">
+        <li><b>Clean the zeros</b><span>Glucose, blood pressure, skin thickness, insulin and BMI contained zeros that are not physically possible. Each was replaced with that column's median.</span></li>
+        <li><b>Scale the measurements</b><span>Seven numeric columns were squeezed into a 0–1 range with a min-max scaler. Pregnancies was left as a raw count.</span></li>
+        <li><b>Split the data</b><span>80% of the rows (614) for training and 20% (154) for testing, with <code>random_state=45</code>.</span></li>
+        <li><b>Fit logistic regression</b><span>scikit-learn's <code>LogisticRegression</code> learned one weight per measurement. The estimate is the sigmoid of the weighted sum, a number between 0 and 1.</span></li>
+        <li><b>Check it on unseen patients</b><span>Accuracy, precision, recall, F1 and AUC, as in the section above. This page runs the same weights in your browser, so nothing you type leaves your device.</span></li>
+      </ol>
+    </section>
+  </main>
+
+  <footer>
+    This is a learning project built on a public research dataset of adult women of Pima Indian heritage. It is not a medical device and cannot diagnose diabetes. Please see a clinician for any health decision.
+  </footer>
+</div>
+
+<script>
+const MODEL = /*__MODEL__*/null;
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const sigmoid = z => 1 / (1 + Math.exp(-z));
+const fmt = (v, d = 0) => Number(v).toFixed(d);
+const pct = (v, d = 1) => (v * 100).toFixed(d) + '%';
+const M = MODEL;
+
+const FIELDS = [
+  { key: 'Pregnancies', label: 'Pregnancies', unit: 'times', hint: 'Number of times pregnant', step: 1, dec: 0, optional: false },
+  { key: 'Glucose', label: 'Glucose', unit: 'mg/dL', hint: 'Plasma glucose, 2 hours into a glucose tolerance test', step: 1, dec: 0, optional: true },
+  { key: 'BloodPressure', label: 'Blood pressure', unit: 'mm Hg', hint: 'Diastolic', step: 1, dec: 0, optional: true },
+  { key: 'SkinThickness', label: 'Skin thickness', unit: 'mm', hint: 'Triceps skinfold', step: 1, dec: 0, optional: true },
+  { key: 'Insulin', label: 'Insulin', unit: 'µU/mL', hint: 'Serum insulin, 2 hours', step: 1, dec: 0, optional: true },
+  { key: 'BMI', label: 'BMI', unit: 'kg/m²', hint: 'Body mass index', step: 0.1, dec: 1, optional: true },
+  { key: 'DiabetesPedigreeFunction', label: 'Family-history score', unit: '', hint: 'Diabetes pedigree function', step: 0.001, dec: 3, optional: false },
+  { key: 'Age', label: 'Age', unit: 'years', hint: 'Model saw ages 21–81', step: 1, dec: 0, optional: false },
+];
+FIELDS.forEach(f => {
+  if (f.key === 'Pregnancies') { f.min = M.pregnancies_range[0]; f.max = M.pregnancies_range[1]; }
+  else { f.min = M.data_min[f.key]; f.max = M.data_max[f.key]; }
+});
+const byKey = Object.fromEntries(FIELDS.map(f => [f.key, f]));
+
+const state = { vals: {}, missing: {} };
+function reset() {
+  FIELDS.forEach(f => { state.vals[f.key] = M.defaults[f.key]; state.missing[f.key] = false; });
+}
+
+/* ---------- model ---------- */
+function effective(f) {
+  if (state.missing[f.key]) return M.medians[f.key];
+  let v = Number(state.vals[f.key]);
+  if (!isFinite(v)) v = M.defaults[f.key];
+  return Math.min(f.max, Math.max(f.min, v));
+}
+function toScaled(key, v) {
+  if (M.scaled.includes(key)) return (v - M.data_min[key]) / (M.data_max[key] - M.data_min[key]);
+  return v;
+}
+function predict() {
+  let z = M.intercept;
+  const contrib = [];
+  M.features.forEach((key, i) => {
+    const raw = effective(byKey[key]);
+    const xs = toScaled(key, raw);
+    z += M.coef[i] * xs;
+    contrib.push({ key, raw, c: M.coef[i] * (xs - M.feature_mean_scaled[key]) });
+  });
+  return { p: sigmoid(z), contrib };
+}
+const baseline = sigmoid(M.intercept + M.features.reduce((s, k, i) => s + M.coef[i] * M.feature_mean_scaled[k], 0));
+
+/* ---------- form ---------- */
+function buildFields() {
+  $('#fields').innerHTML = FIELDS.map(f => `
+    <div class="field" data-key="${f.key}">
+      <div class="field-head">
+        <label for="n-${f.key}">${f.label}<span class="hint">${f.hint}</span></label>
+        <div class="readout">
+          <input class="num" id="n-${f.key}" type="number" inputmode="decimal" step="${f.step}" min="${f.min}" max="${f.max}">
+          <span class="unit">${f.unit}</span>
+        </div>
+      </div>
+      <div class="slider-row">
+        <input type="range" id="r-${f.key}" aria-label="${f.label} slider" min="${f.min}" max="${f.max}" step="${f.step}">
+        ${f.optional ? `<label class="miss"><input type="checkbox" id="m-${f.key}"> Not measured</label>` : ''}
+      </div>
+      <div class="note" id="w-${f.key}"></div>
+    </div>`).join('');
+}
+function syncField(f) {
+  const n = $('#n-' + f.key), r = $('#r-' + f.key), m = $('#m-' + f.key), w = $('#w-' + f.key);
+  const miss = state.missing[f.key];
+  if (m) m.checked = miss;
+  n.disabled = r.disabled = miss;
+  if (miss) { n.value = fmt(M.medians[f.key], f.dec); r.value = M.medians[f.key]; w.textContent = `Using the dataset median (${fmt(M.medians[f.key], f.dec)} ${f.unit}).`; return; }
+  const v = Number(state.vals[f.key]);
+  if (document.activeElement !== n) n.value = isFinite(v) ? fmt(v, f.dec) : '';
+  r.value = isFinite(v) ? v : f.min;
+  w.textContent = (isFinite(v) && (v < f.min || v > f.max))
+    ? `Outside the range the model learned from (${fmt(f.min, f.dec)}–${fmt(f.max, f.dec)}). Using ${fmt(effective(f), f.dec)} instead.` : '';
+}
+function bindFields() {
+  FIELDS.forEach(f => {
+    $('#n-' + f.key).addEventListener('input', e => { state.vals[f.key] = e.target.value === '' ? NaN : parseFloat(e.target.value); render(f); });
+    $('#r-' + f.key).addEventListener('input', e => { state.vals[f.key] = parseFloat(e.target.value); $('#n-' + f.key).value = fmt(state.vals[f.key], f.dec); render(f); });
+    const m = $('#m-' + f.key);
+    if (m) m.addEventListener('change', e => { state.missing[f.key] = e.target.checked; if (!e.target.checked && !isFinite(state.vals[f.key])) state.vals[f.key] = M.defaults[f.key]; render(f); });
+  });
+  document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    const ex = c.dataset.ex;
+    if (ex === 'reset') reset();
+    else {
+      const row = M.examples[ex];
+      FIELDS.forEach(f => {
+        const zero = f.optional && row[f.key] === 0;
+        state.missing[f.key] = zero;
+        state.vals[f.key] = zero ? M.defaults[f.key] : row[f.key];
+      });
+    }
+    FIELDS.forEach(syncField); render();
+  }));
+}
+
+/* ---------- result ---------- */
+const FILL_LEN = 100;
+function render(changed) {
+  if (changed) syncField(changed);
+  const { p, contrib } = predict();
+  const hi = p >= 0.5;
+  const fill = $('#gFill');
+  fill.style.strokeDashoffset = FILL_LEN - p * FILL_LEN;
+  fill.style.stroke = hi ? 'var(--high)' : 'var(--low)';
+  $('#gDot').style.transform = `rotate(${p * 180}deg)`;
+  $('#gPct').textContent = Math.round(p * 100) + '%';
+  $('#gaugeSvg').setAttribute('aria-label', `Estimated chance of diabetes: ${Math.round(p * 100)} percent`);
+  const v = $('#verdict');
+  v.className = 'verdict ' + (hi ? 'hi' : 'lo');
+  v.innerHTML = `<strong>${hi ? 'Higher risk' : 'Lower risk'}</strong><span>The model predicts ${hi ? 'diabetes' : 'no diabetes'} at its 50% cut-off.</span>`;
+  $('#driverSub').textContent = `Compared with an average patient in the dataset, who scores ${Math.round(baseline * 100)}%. Bars show the shift in log-odds.`;
+  const sorted = contrib.slice().sort((a, b) => Math.abs(b.c) - Math.abs(a.c));
+  const max = Math.max(1.2, ...sorted.map(s => Math.abs(s.c)));
+  $('#drivers').innerHTML = sorted.map(s => {
+    const f = byKey[s.key], w = Math.abs(s.c) / max * 50;
+    const style = s.c >= 0 ? `left:50%;width:${w}%;background:var(--high)` : `left:${50 - w}%;width:${w}%;background:var(--low)`;
+    return `<div class="drow"><span class="lab">${f.label}</span><div class="dtrack" role="img" aria-label="${f.label} ${s.c >= 0 ? 'raises' : 'lowers'} risk"><div class="dbar" style="${style}"></div></div><span class="dval">${s.c >= 0 ? '+' : '−'}${Math.abs(s.c).toFixed(2)}</span></div>`;
+  }).join('');
+}
+
+/* ---------- static sections ---------- */
+function renderStatic() {
+  const m = M.metrics;
+  const tiles = [
+    ['Accuracy', pct(m.accuracy), 'Share of all test patients classified correctly.'],
+    ['Precision', pct(m.precision), 'When it says diabetes, how often it is right.'],
+    ['Recall', pct(m.recall), 'Share of real diabetes cases it catches.'],
+    ['F1 score', pct(m.f1), 'Balance of precision and recall.'],
+    ['AUC', m.auc.toFixed(3), '1.0 is perfect ranking, 0.5 is a coin flip.'],
+  ];
+  $('#metrics').innerHTML = tiles.map(t => `<div class="metric"><b>${t[1]}</b><span>${t[0]}</span><small>${t[2]}</small></div>`).join('');
+  const c = m.confusion;
+  $('#recallNote').innerHTML = `<b>Read this before trusting a “lower risk” result.</b> At the default 50% cut-off the model catches ${pct(m.recall, 0)} of real diabetes cases (${c.tp} of ${c.tp + c.fn}) and misses ${c.fn}. Screening tools usually trade some precision for higher recall.`;
+  $('#cm').innerHTML = `
+    <span></span><span class="h">Predicted: no diabetes</span><span class="h">Predicted: diabetes</span>
+    <span class="rl">Actually no diabetes</span><div class="cell ok"><b>${c.tn}</b><span>correctly cleared</span></div><div class="cell bad"><b>${c.fp}</b><span>false alarms</span></div>
+    <span class="rl">Actually diabetes</span><div class="cell bad"><b>${c.fn}</b><span>missed cases</span></div><div class="cell ok"><b>${c.tp}</b><span>correctly flagged</span></div>`;
+
+  // ROC
+  const W = 320, H = 300, L = 38, B = 32, T = 10, R = 12;
+  const px = x => L + x * (W - L - R), py = y => H - B - y * (H - B - T);
+  const pts = M.roc.fpr.map((x, i) => `${px(x).toFixed(1)},${py(M.roc.tpr[i]).toFixed(1)}`).join(' ');
+  const ticks = [0, .25, .5, .75, 1].map(t => `<line class="axis" x1="${px(t)}" x2="${px(t)}" y1="${py(0)}" y2="${py(0) + 4}"/><text class="tick" x="${px(t)}" y="${py(0) + 17}" text-anchor="middle">${t}</text>
+    <line class="axis" x1="${L - 4}" x2="${L}" y1="${py(t)}" y2="${py(t)}"/><text class="tick" x="${L - 8}" y="${py(t) + 4}" text-anchor="end">${t}</text>`).join('');
+  $('#roc').innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="ROC curve with AUC ${m.auc.toFixed(3)}">
+    <line class="axis" x1="${L}" y1="${py(0)}" x2="${px(1)}" y2="${py(0)}"/><line class="axis" x1="${L}" y1="${py(0)}" x2="${L}" y2="${py(1)}"/>
+    <line x1="${px(0)}" y1="${py(0)}" x2="${px(1)}" y2="${py(1)}" stroke="var(--muted)" stroke-dasharray="4 4" opacity=".7"/>
+    <polyline points="${pts}" fill="none" stroke="var(--high)" stroke-width="2.5" stroke-linejoin="round"/>${ticks}
+    <text class="tick" x="${px(.5)}" y="${H - 2}" text-anchor="middle">False positive rate</text>
+    <text class="tick" transform="translate(10 ${py(.5)}) rotate(-90)" text-anchor="middle">True positive rate</text>
+    <text x="${px(.98)}" y="${py(.16)}" text-anchor="end" fill="var(--ink)" style="font:700 15px var(--display)">AUC ${m.auc.toFixed(3)}</text></svg>`;
+
+  // coefficient swing chart
+  const swing = M.features.map((k, i) => {
+    const f = byKey[k];
+    const range = M.scaled.includes(k) ? 1 : (f.max - f.min);
+    return { label: f.label, v: M.coef[i] * range };
+  }).sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
+  const mx = Math.max(...swing.map(s => Math.abs(s.v)));
+  $('#coefChart').innerHTML = swing.map(s => {
+    const w = Math.abs(s.v) / mx * 50;
+    const st = s.v >= 0 ? `left:50%;width:${w}%;background:var(--high)` : `left:${50 - w}%;width:${w}%;background:var(--low)`;
+    return `<div class="drow" style="grid-template-columns:150px 1fr 56px"><span class="lab">${s.label}</span><div class="dtrack" style="height:16px"><div class="dbar" style="${st}"></div></div><span class="dval">${s.v >= 0 ? '+' : '−'}${Math.abs(s.v).toFixed(2)}</span></div>`;
+  }).join('') + `<div class="legend"><span><i style="background:var(--high)"></i>Raises risk as it increases</span><span><i style="background:var(--low)"></i>Lowers risk as it increases</span></div>`;
+
+  // data section
+  const d = M.dataset;
+  $('#dataLede').textContent = `${d.rows} patients: ${d.positive} with diabetes (${pct(d.positive / d.rows, 0)}) and ${d.negative} without. Zeros stood in for missing readings in ${d.zero_counts.Insulin} insulin and ${d.zero_counts.SkinThickness} skin-thickness rows, among others.`;
+  const gh = M.glucose_hist, n = gh.counts['0'].length;
+  const GW = 420, GH = 230, gl = 34, gb = 28, gt = 8, gr = 6;
+  const gmax = Math.max(...gh.counts['0'], ...gh.counts['1']);
+  const bw = (GW - gl - gr) / n;
+  const gy = v => GH - gb - v / gmax * (GH - gb - gt);
+  let bars = '';
+  for (let i = 0; i < n; i++) {
+    const x = gl + i * bw;
+    [['0', 'var(--low)', 0], ['1', 'var(--high)', 1]].forEach(([o, col, k]) => {
+      const v = gh.counts[o][i]; if (!v) return;
+      bars += `<rect x="${x + 1 + k * (bw - 2) / 2}" y="${gy(v)}" width="${(bw - 2) / 2}" height="${GH - gb - gy(v)}" fill="${col}" rx="1.5"/>`;
+    });
+    if (i % 2 === 0) bars += `<text class="tick" x="${x}" y="${GH - 10}" text-anchor="middle">${gh.bins[i]}</text>`;
+  }
+  const yt = [0, Math.round(gmax / 2), gmax].map(v => `<line class="axis" x1="${gl}" x2="${GW - gr}" y1="${gy(v)}" y2="${gy(v)}" opacity=".6"/><text class="tick" x="${gl - 6}" y="${gy(v) + 4}" text-anchor="end">${v}</text>`).join('');
+  $('#gluc').innerHTML = `<svg class="chart" viewBox="0 0 ${GW} ${GH}" role="img" aria-label="Histogram of glucose by outcome">${yt}${bars}<text class="tick" x="${(GW + gl) / 2}" y="${GH}" text-anchor="middle">Glucose (mg/dL)</text></svg>`;
+
+  const rows = (title, arr) => `<h3 style="font-size:.95rem;margin:14px 0 4px">${title}</h3>` + arr.map(r =>
+    `<div class="hrow"><span>${r.label}</span><div class="htrack"><div class="hbar" style="width:${r.rate * 100}%"></div></div><span class="hval">${pct(r.rate, 0)} · n=${r.n}</span></div>`).join('');
+  $('#rates').innerHTML = rows('Age', M.age_rates) + rows('BMI', M.bmi_rates);
+}
+
+/* ---------- theme ---------- */
+function setTheme(t) { document.documentElement.setAttribute('data-theme', t); $('#themeBtn').textContent = t === 'dark' ? 'Light theme' : 'Dark theme'; }
+$('#themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  setTheme(cur === 'dark' ? 'light' : 'dark');
+});
+setTheme(matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+/* ---------- start ---------- */
+reset(); buildFields(); bindFields(); FIELDS.forEach(syncField); renderStatic(); render();
+</script>
+</body>
+</html>
